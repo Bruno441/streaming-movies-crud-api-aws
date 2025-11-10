@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2022", // Pode ser ES2022 para Node 20
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": ".build", // Diretório de saída
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "src/*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"], // Só compila arquivos .ts na pasta 'src'
+  "exclude": ["node_modules", ".serverless", ".build"],
+  "ts-node": {
+    "require": ["tsconfig-paths/register"]
+  }
+}

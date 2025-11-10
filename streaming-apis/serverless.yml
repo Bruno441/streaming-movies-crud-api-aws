@@ -1,0 +1,130 @@
+service: streaming-api
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: dev
+  region: us-east-1 # Ou a região que você configurou
+
+  # --- environment e iam DEVEM ESTAR AQUI DENTRO ---
+  environment:
+    MIDIAS_TABLE_NAME: ${self:custom.midiasTableName}
+    USUARIOS_TABLE_NAME: ${self:custom.usuariosTableName}
+    JWT_SECRET: ${ssm:/streaming-api/dev/jwt-secret}
+
+  iam:
+    role:
+      statements:
+        # Permissões para a Tabela de Mídias
+        - Effect: 'Allow'
+          Action:
+            - 'dynamodb:GetItem'
+            - 'dynamodb:PutItem'
+            - 'dynamodb:UpdateItem'
+            - 'dynamodb:DeleteItem'
+            - 'dynamodb:Scan'
+          Resource: 'arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:custom.midiasTableName}'
+
+        # Permissões para a Tabela de Usuários
+        - Effect: 'Allow'
+          Action:
+            - 'dynamodb:GetItem'
+            - 'dynamodb:PutItem'
+          Resource: 'arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:custom.usuariosTableName}'
+
+# --- functions FICA NO NÍVEL RAIZ ---
+functions:
+  # --- AUTENTICAÇÃO (Endpoints públicos) ---
+  register:
+    handler: src/functions/auth/register.handler
+    events:
+      - http:
+          path: /auth/register
+          method: post
+  login:
+    handler: src/functions/auth/login.handler
+    events:
+      - http:
+          path: /auth/login
+          method: post
+
+  # --- AUTORIZADOR (Função especial de segurança) ---
+  authorizer:
+    handler: src/functions/auth/authorizer.handler
+
+  # --- CRUD DE MÍDIAS (Endpoints protegidos) ---
+  createMedia:
+    handler: src/functions/media/create.handler
+    events:
+      - http:
+          path: /media
+          method: post
+          authorizer: authorizer
+
+  listMedia:
+    handler: src/functions/media/list.handler
+    events:
+      - http:
+          path: /media
+          method: get
+          authorizer: authorizer
+
+  getMedia:
+    handler: src/functions/media/get.handler
+    events:
+      - http:
+          path: /media/{id}
+          method: get
+          authorizer: authorizer
+
+  updateMedia:
+    handler: src/functions/media/update.handler
+    events:
+      - http:
+          path: /media/{id}
+          method: put
+          authorizer: authorizer
+
+  deleteMedia:
+    handler: src/functions/media/delete.handler
+    events:
+      - http:
+          path: /media/{id}
+          method: delete
+          authorizer: authorizer
+
+# --- resources FICA NO NÍVEL RAIZ ---
+# E SÓ CONTÉM 'Resources:' DENTRO DELE
+resources:
+  Resources:
+    # --- Tabela de Mídias ---
+    MidiasTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.midiasTableName}
+        AttributeDefinitions:
+          - AttributeName: mediaId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: mediaId
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    # --- Tabela de Usuários ---
+    UsuariosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.usuariosTableName}
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+# --- custom FICA NO NÍVEL RAIZ ---
+custom:
+  midiasTableName: streaming-api-midias-dev
+  usuariosTableName: streaming-api-usuarios-dev
