@@ -21,6 +21,13 @@ const generatePolicy = (
   effect: 'Allow' | 'Deny',
   resource: string
 ): APIGatewayAuthorizerResult => {
+  // Extrai o ARN base e adiciona wildcard para autorizar TODAS as rotas
+  // Exemplo: arn:aws:execute-api:us-east-1:123456789012:abcdef123/dev/GET/media
+  // Vira: arn:aws:execute-api:us-east-1:123456789012:abcdef123/*/*
+  const arnParts = resource.split('/');
+  const apiGatewayArnBase = arnParts.slice(0, 2).join('/'); // Pega até o stage
+  const resourceWildcard = `${apiGatewayArnBase}/*/*`; // Autoriza todos os métodos e paths
+  
   return {
     principalId: principalId,
     policyDocument: {
@@ -29,7 +36,7 @@ const generatePolicy = (
         {
           Action: 'execute-api:Invoke', // Ação de invocar a API
           Effect: effect,
-          Resource: resource, // O endpoint específico
+          Resource: resourceWildcard, // TODAS as rotas da API
         },
       ],
     },

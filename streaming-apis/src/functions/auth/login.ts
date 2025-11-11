@@ -88,7 +88,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
     // Agora o TypeScript sabe que JWT_SECRET é uma string
     const token = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: '8h', // Token expira em 8 horas
+      expiresIn: '1h', // Token expira em 8 horas
     });
 
     // 7. Retornar sucesso com o token
